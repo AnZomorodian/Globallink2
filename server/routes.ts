@@ -38,10 +38,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User sign up with full validation
+  // Simple user sign up (simplified for this app)
   app.post("/api/auth/signup", async (req, res) => {
     try {
-      const userData = insertUserSchema.parse(req.body);
+      // Simple validation schema for basic signup
+      const simpleSignupSchema = z.object({
+        username: z.string().min(3, "Username must be at least 3 characters"),
+        displayName: z.string().min(2, "Display name must be at least 2 characters"),
+      });
+      
+      const userData = simpleSignupSchema.parse(req.body);
       
       // Check if username already exists
       const existingUsername = await storage.getUserByUsername(userData.username);
@@ -49,23 +55,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Username already exists" });
       }
 
-      // Check if email already exists
-      const existingEmail = await storage.getUserByEmail(userData.email);
-      if (existingEmail) {
-        return res.status(400).json({ message: "Email already exists" });
-      }
-
-      // Hash password (in production, use bcrypt or similar)
-      const hashedPassword = Buffer.from(userData.password).toString('base64');
-      
+      // Create simplified user data with defaults
       const userToCreate = {
-        ...userData,
-        password: hashedPassword
+        username: userData.username,
+        displayName: userData.displayName,
+        email: `${userData.username}@globalink.local`, // Default email
+        password: "default", // No password needed for this simple version
+        confirmPassword: "default",
+        phoneNumber: null,
+        countryCode: null,
+        companyName: null,
+        jobTitle: null,
+        firstName: null,
+        lastName: null,
+        birthDate: null,
+        bio: null
       };
 
       const user = await storage.createUser(userToCreate);
       
-      // Don't return password in response
+      // Return user without password
       const { password, ...userResponse } = user;
       res.json(userResponse);
     } catch (error) {
@@ -76,24 +85,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User login
+  // Simple user login (no password required for this version)
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { username, password } = req.body;
+      const { username } = req.body;
       
-      if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
+      if (!username) {
+        return res.status(400).json({ message: "Username is required" });
       }
 
       const user = await storage.getUserByUsername(username);
       if (!user) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-
-      // Check password (in production, use bcrypt.compare)
-      const hashedInputPassword = Buffer.from(password).toString('base64');
-      if (user.password !== hashedInputPassword) {
-        return res.status(401).json({ message: "Invalid credentials" });
+        return res.status(401).json({ message: "User not found. Please sign up first." });
       }
 
       // Don't return password in response

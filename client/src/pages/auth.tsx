@@ -24,7 +24,6 @@ export default function AuthPage({ onLogin, onSwitchToSignUp }: AuthPageProps) {
   const loginForm = useForm({
     defaultValues: {
       username: "",
-      password: "",
     },
   });
 
@@ -43,7 +42,7 @@ export default function AuthPage({ onLogin, onSwitchToSignUp }: AuthPageProps) {
   });
 
   const loginMutation = useMutation({
-    mutationFn: async (userData: { username: string; password: string }) => {
+    mutationFn: async (userData: { username: string }) => {
       const response = await apiRequest('POST', '/api/auth/login', userData);
       return response.json();
     },
@@ -65,7 +64,7 @@ export default function AuthPage({ onLogin, onSwitchToSignUp }: AuthPageProps) {
 
   const registerMutation = useMutation({
     mutationFn: async (userData: { username: string; displayName: string }) => {
-      const response = await apiRequest('POST', '/api/auth/register', userData);
+      const response = await apiRequest('POST', '/api/auth/signup', userData);
       return response.json();
     },
     onSuccess: (user: User) => {
@@ -84,7 +83,7 @@ export default function AuthPage({ onLogin, onSwitchToSignUp }: AuthPageProps) {
     },
   });
 
-  const onLoginSubmit = (data: { username: string; password: string }) => {
+  const onLoginSubmit = (data: { username: string }) => {
     loginMutation.mutate(data);
   };
 
@@ -152,25 +151,7 @@ export default function AuthPage({ onLogin, onSwitchToSignUp }: AuthPageProps) {
                   )}
                 />
                 
-                <FormField
-                  control={loginForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium text-gray-700">Password</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="password"
-                          placeholder="Enter your password"
-                          className="px-4 py-3 rounded-xl focus:ring-2 focus:ring-primary"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
+
                 <Button 
                   type="submit" 
                   className="w-full py-3 rounded-xl font-medium"
