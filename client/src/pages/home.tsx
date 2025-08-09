@@ -30,28 +30,36 @@ import type { User } from "@shared/schema";
 interface HomePageProps {
   user: User;
   onLogout: () => void;
+  isConnected?: boolean;
 }
+
+type ActiveComponent = 'dashboard' | 'history' | 'settings' | 'shortcuts';
 
 const callFormSchema = z.object({
   recipientId: z.string().min(1, "Please enter a Voice ID"),
 });
 
-export default function HomePage({ user: initialUser, onLogout }: HomePageProps) {
+export default function HomePage({ user, onLogout, isConnected = false }: HomePageProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [user, setUser] = useState(initialUser);
+  const [activeComponent, setActiveComponent] = useState<ActiveComponent>('dashboard');
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+
+  // WebSocket connection
+  const { sendMessage, addMessageHandler, removeMessageHandler } = useWebSocket(user.id);
+
+  const [userState, setUser] = useState(initialUser);
   const [copiedVoiceId, setCopiedVoiceId] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isDeafened, setIsDeafened] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isInboxOpen, setIsInboxOpen] = useState(false);
-  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [selectedRecipient, setSelectedRecipient] = useState<{ id: string; name: string } | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const webRTCRef = useRef<WebRTCService | null>(null);
   const ringtoneRef = useRef<RingtoneService | null>(null);
-  
+
   // Call states
   const [activeCall, setActiveCall] = useState<{
     callId: string;
@@ -60,15 +68,13 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
     callerId: string;
     isConnected: boolean;
   } | null>(null);
-  
+
   const [incomingCall, setIncomingCall] = useState<{
     callId: string;
     callerName: string;
     callerInitials: string;
     callerId: string;
   } | null>(null);
-
-  const { isConnected, sendMessage, addMessageHandler, removeMessageHandler } = useWebSocket(user.id);
 
   // Initialize WebRTC and Ringtone services
   useEffect(() => {
@@ -93,31 +99,31 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
 
   // Get call history
   const { data: callHistory = [], refetch: refetchHistory } = useQuery({
-    queryKey: ['/api/calls/history', user.id],
-    enabled: !!user.id,
+    queryKey: ['/api/calls/history', userState.id],
+    enabled: !!userState.id,
   }) as { data: any[], refetch: () => void };
 
   // Check for unread messages
   useEffect(() => {
-    if (user) {
+    if (userState) {
       const checkUnreadMessages = () => {
-        const inboxKey = `globalink_inbox_${user.id}`;
+        const inboxKey = `globalink_inbox_${userState.id}`;
         const messages = JSON.parse(localStorage.getItem(inboxKey) || '[]');
         const unread = messages.filter((msg: any) => !msg.isRead).length;
         setUnreadCount(unread);
       };
-      
+
       checkUnreadMessages();
       const interval = setInterval(checkUnreadMessages, 3000);
       return () => clearInterval(interval);
     }
-  }, [user]);
+  }, [userState]);
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isCtrlOrCmd = e.ctrlKey || e.metaKey;
-      
+
       if (isCtrlOrCmd && e.key === '/') {
         e.preventDefault();
         setIsShortcutsOpen(true);
@@ -145,7 +151,7 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
         .map((n: string) => n[0])
         .join('')
         .toUpperCase() || 'UN';
-      
+
       setIncomingCall({
         callId: message.callId,
         callerName: message.callerInfo?.displayName || 'Unknown',
@@ -169,10 +175,10 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
             callId: message.callId,
             isConnected: true
           });
-          
+
           // Play call connected sound
           ringtoneRef.current.playCallConnectedSound();
-          
+
           toast({
             title: "Call Connected",
             description: "Voice call is now active!",
@@ -242,16 +248,16 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
 
     addMessageHandler('new_message', (message) => {
       console.log('Received new message via WebSocket:', message);
-      
+
       // Update unread count
       setUnreadCount(prev => prev + 1);
-      
+
       // Show notification
       toast({
         title: "New Message",
         description: `From ${message.messageData?.senderName || 'Unknown'}`,
       });
-      
+
       // If inbox is open, refresh it
       if (isInboxOpen) {
         // Force refresh the inbox modal
@@ -268,11 +274,11 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
       removeMessageHandler('call_ended');
       removeMessageHandler('call_failed');
     };
-  }, [addMessageHandler, removeMessageHandler, activeCall, refetchHistory, toast]);
+  }, [addMessageHandler, removeMessageHandler, activeCall, refetchHistory, toast, isInboxOpen]);
 
   const handleCopyVoiceId = async () => {
     try {
-      await navigator.clipboard.writeText(user.voiceId);
+      await navigator.clipboard.writeText(userState.voiceId);
       setCopiedVoiceId(true);
       toast({
         title: "Voice ID Copied",
@@ -292,13 +298,13 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
     try {
       // Check if recipient exists
       const recipient = await CallService.getUserByVoiceId(data.recipientId);
-      
+
       const recipientInitials = recipient.displayName
         ?.split(' ')
         .map((n: string) => n[0])
         .join('')
         .toUpperCase() || 'UN';
-      
+
       // Set up active call state
       setActiveCall({
         callId: '', // Will be set by WebSocket response
@@ -316,12 +322,12 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
       // Send call initiation message
       sendMessage({
         type: 'initiate_call',
-        callerId: user.id,
+        callerId: userState.id,
         recipientId: recipient.id
       });
 
       form.reset();
-      
+
       toast({
         title: "Calling...",
         description: `Calling ${recipient.displayName}`,
@@ -329,8 +335,8 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
     } catch (error: any) {
       toast({
         title: "Call Failed",
-        description: error.message === "404: User not found" 
-          ? "User with this Voice ID not found" 
+        description: error.message === "404: User not found"
+          ? "User with this Voice ID not found"
           : "Unable to initiate call",
         variant: "destructive",
       });
@@ -342,7 +348,7 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
       try {
         ringtoneRef.current.stopRingtone();
         await webRTCRef.current.answerCall(incomingCall.callId);
-        
+
         sendMessage({
           type: 'accept_call',
           callId: incomingCall.callId
@@ -353,10 +359,10 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
           isConnected: true
         });
         setIncomingCall(null);
-        
+
         // Play call connected sound
         ringtoneRef.current.playCallConnectedSound();
-        
+
         toast({
           title: "Call Accepted",
           description: "Voice call is now active!",
@@ -389,12 +395,12 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
     if (webRTCRef.current) {
       webRTCRef.current.endCall();
     }
-    
+
     if (ringtoneRef.current) {
       ringtoneRef.current.stopRingtone();
       ringtoneRef.current.playCallEndedSound();
     }
-    
+
     if (activeCall) {
       sendMessage({
         type: 'end_call',
@@ -468,7 +474,7 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
                 <h1 className="text-xl font-bold text-gray-900">Globalink</h1>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-4">
               {/* User Status Indicator */}
               <div className="flex items-center space-x-2 bg-success/10 text-success px-3 py-1 rounded-full">
@@ -479,9 +485,9 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
               </div>
 
               {/* Keyboard Shortcuts Button */}
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className="p-2"
                 onClick={() => setIsShortcutsOpen(true)}
                 title="Keyboard shortcuts (Ctrl+/)"
@@ -490,9 +496,9 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
               </Button>
 
               {/* Inbox Button */}
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className="p-2 relative"
                 onClick={() => {
                   setIsInboxOpen(true);
@@ -507,31 +513,31 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
                   </div>
                 )}
               </Button>
-              
+
               {/* User Menu */}
               <div className="flex items-center space-x-3">
-                {user.profileImage ? (
-                  <img 
-                    src={user.profileImage} 
-                    alt={user.displayName}
+                {userState.profileImage ? (
+                  <img
+                    src={userState.profileImage}
+                    alt={userState.displayName}
                     className="w-8 h-8 rounded-full object-cover"
                   />
                 ) : (
-                  <div className={`w-8 h-8 ${getGradientClass(getInitials(user.displayName))} rounded-full flex items-center justify-center`}>
+                  <div className={`w-8 h-8 ${getGradientClass(getInitials(userState.displayName))} rounded-full flex items-center justify-center`}>
                     <span className="text-white text-sm font-medium">
-                      {getInitials(user.displayName)}
+                      {getInitials(userState.displayName)}
                     </span>
                   </div>
                 )}
                 <div className="hidden sm:block text-left">
-                  <div className="text-sm font-medium text-gray-900">{user.displayName}</div>
-                  <div className="text-xs text-gray-500">ID: {user.voiceId}</div>
+                  <div className="text-sm font-medium text-gray-900">{userState.displayName}</div>
+                  <div className="text-xs text-gray-500">ID: {userState.voiceId}</div>
                 </div>
-                
+
                 {/* Settings Button */}
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="p-2"
                   onClick={() => setIsSettingsOpen(true)}
                 >
@@ -545,10 +551,10 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
-        
+
         {/* Status Widgets */}
-        <StatusWidgets isConnected={isConnected} currentUserId={user.id} />
-        
+        <StatusWidgets isConnected={isConnected} currentUserId={userState.id} />
+
         {/* User ID Card */}
         <Card className="mb-8">
           <CardContent className="p-6">
@@ -560,7 +566,7 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
               <div className="flex items-center space-x-3">
                 <div className="bg-gray-100 px-4 py-2 rounded-xl">
                   <span className="font-mono text-lg font-semibold text-gray-900">
-                    {user.voiceId}
+                    {userState.voiceId}
                   </span>
                 </div>
                 <Button
@@ -580,7 +586,7 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
 
         {/* Main Dashboard */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
+
           {/* Make Call Panel */}
           <Card>
             <CardHeader>
@@ -611,18 +617,18 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
                       </FormItem>
                     )}
                   />
-                  
+
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
-                      <Button 
-                        type="submit" 
+                      <Button
+                        type="submit"
                         className="bg-success hover:bg-success/90 py-3 rounded-xl font-medium flex items-center justify-center space-x-2"
                         disabled={!isConnected}
                       >
                         <Phone className="h-4 w-4" />
                         <span>Voice</span>
                       </Button>
-                      <Button 
+                      <Button
                         type="button"
                         className="bg-primary hover:bg-primary/90 py-3 rounded-xl font-medium flex items-center justify-center space-x-2"
                         disabled={!isConnected}
@@ -635,7 +641,7 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
                         <span>Video</span>
                       </Button>
                     </div>
-                    <Button 
+                    <Button
                       type="button"
                       variant="outline"
                       className="w-full py-3 rounded-xl font-medium flex items-center justify-center space-x-2 hover:bg-gray-50"
@@ -672,13 +678,13 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
                   <p className="text-gray-500 text-center py-8">No call history yet</p>
                 ) : (
                   callHistory.slice(0, 5).map((call: any) => {
-                    const otherPerson = call.callerId === user.id ? call.recipientInfo : call.callerInfo;
+                    const otherPerson = call.callerId === userState.id ? call.recipientInfo : call.callerInfo;
                     const otherPersonInitials = otherPerson?.displayName
                       ?.split(' ')
                       .map((n: string) => n[0])
                       .join('')
                       .toUpperCase() || 'UN';
-                    
+
                     return (
                       <div key={call.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-colors duration-200">
                         <div className="flex items-center space-x-3">
@@ -693,11 +699,11 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
                             </div>
                             <div className="flex items-center space-x-1 text-xs text-gray-500">
                               <Phone className={`h-3 w-3 ${
-                                call.status === 'ended' ? 'text-success' : 
+                                call.status === 'ended' ? 'text-success' :
                                 call.status === 'missed' ? 'text-destructive' : 'text-gray-400'
                               }`} />
                               <span>
-                                {call.callerId === user.id ? 'Outgoing' : 'Incoming'} • {CallService.formatTimeAgo(call.startTime)}
+                                {call.callerId === userState.id ? 'Outgoing' : 'Incoming'} • {CallService.formatTimeAgo(call.startTime)}
                               </span>
                             </div>
                           </div>
@@ -710,7 +716,7 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
                             call.status === 'ended' ? 'text-success' :
                             call.status === 'missed' ? 'text-destructive' : 'text-gray-500'
                           }`}>
-                            {call.status === 'ended' ? 'Completed' : 
+                            {call.status === 'ended' ? 'Completed' :
                              call.status === 'missed' ? 'Missed' : call.status}
                           </div>
                         </div>
@@ -718,7 +724,7 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
                     );
                   })
                 )}
-                
+
                 {callHistory.length > 5 && (
                   <Button variant="ghost" className="w-full mt-4 text-primary">
                     View All History
@@ -731,7 +737,7 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
 
         {/* Activity Feed Row */}
         <div className="mt-8">
-          <ActivityFeed currentUserId={user.id} limit={6} />
+          <ActivityFeed currentUserId={userState.id} limit={6} />
         </div>
       </main>
 
@@ -742,7 +748,7 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
       {selectedRecipient && (
         <div className="fixed bottom-4 right-4 z-50">
           <DirectMessaging
-            currentUserId={user.id}
+            currentUserId={userState.id}
             recipientId={selectedRecipient.id}
             recipientName={selectedRecipient.name}
             onClose={() => setSelectedRecipient(null)}
@@ -781,7 +787,7 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
       <InboxModal
         isOpen={isInboxOpen}
         onClose={() => setIsInboxOpen(false)}
-        currentUserId={user.id}
+        currentUserId={userState.id}
         onReply={(recipientId, recipientName) => {
           setSelectedRecipient({ id: recipientId, name: recipientName });
           setIsInboxOpen(false);
@@ -791,7 +797,7 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
       <UserSettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
-        user={user}
+        user={userState}
         onLogout={onLogout}
         onUserUpdate={handleUserUpdate}
       />

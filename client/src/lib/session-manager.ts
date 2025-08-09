@@ -1,109 +1,69 @@
-import type { User } from "@shared/schema";
-
-interface SessionSettings {
-  rememberSession: boolean;
-  autoLogin: boolean;
-}
 
 class SessionManager {
   private readonly SESSION_KEY = 'globalink_session';
   private readonly SETTINGS_KEY = 'globalink_session_settings';
 
-  getSessionSettings(): SessionSettings {
+  saveSession(user: any): void {
     try {
-      const settings = localStorage.getItem(this.SETTINGS_KEY);
-      if (settings) {
-        return JSON.parse(settings);
-      }
+      localStorage.setItem(this.SESSION_KEY, JSON.stringify(user));
     } catch (error) {
-      console.error('Error loading session settings:', error);
-    }
-    
-    return {
-      rememberSession: false,
-      autoLogin: false
-    };
-  }
-
-  setSessionSettings(settings: Partial<SessionSettings>): void {
-    try {
-      const currentSettings = this.getSessionSettings();
-      const newSettings = { ...currentSettings, ...settings };
-      localStorage.setItem(this.SETTINGS_KEY, JSON.stringify(newSettings));
-      
-      // If remember session is disabled, clear current session
-      if (!newSettings.rememberSession) {
-        this.clearSession();
-      }
-    } catch (error) {
-      console.error('Error saving session settings:', error);
+      console.error('Failed to save session:', error);
     }
   }
 
-  saveSession(user: User): void {
+  getSession(): any | null {
     try {
-      const settings = this.getSessionSettings();
-      if (settings.rememberSession) {
-        const sessionData = {
-          user,
-          timestamp: Date.now(),
-          expiresAt: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days
-        };
-        localStorage.setItem(this.SESSION_KEY, JSON.stringify(sessionData));
-      }
-    } catch (error) {
-      console.error('Error saving session:', error);
-    }
-  }
-
-  getSession(): User | null {
-    try {
-      const settings = this.getSessionSettings();
-      if (!settings.rememberSession) {
-        return null;
-      }
-
       const sessionData = localStorage.getItem(this.SESSION_KEY);
-      if (sessionData) {
-        const parsed = JSON.parse(sessionData);
-        
-        // Check if session is expired
-        if (parsed.expiresAt && Date.now() > parsed.expiresAt) {
-          this.clearSession();
-          return null;
-        }
-        
-        return parsed.user;
-      }
+      return sessionData ? JSON.parse(sessionData) : null;
     } catch (error) {
-      console.error('Error loading session:', error);
-      this.clearSession();
+      console.error('Failed to get session:', error);
+      this.clearSession(); // Clear corrupted data
+      return null;
     }
-    
-    return null;
   }
 
   clearSession(): void {
     try {
       localStorage.removeItem(this.SESSION_KEY);
       localStorage.removeItem(this.SETTINGS_KEY);
-      // Also clear user data
-      localStorage.removeItem('globalink_user');
       sessionStorage.clear();
     } catch (error) {
-      console.error('Error clearing session:', error);
+      console.error('Failed to clear session:', error);
+    }
+  }
+
+  updateSession(updates: any): void {
+    try {
+      const currentSession = this.getSession();
+      if (currentSession) {
+        const updatedSession = { ...currentSession, ...updates };
+        this.saveSession(updatedSession);
+      }
+    } catch (error) {
+      console.error('Failed to update session:', error);
     }
   }
 
   isSessionValid(): boolean {
     const session = this.getSession();
-    return session !== null;
+    return session && session.id;
   }
 
-  refreshSession(user: User): void {
-    const settings = this.getSessionSettings();
-    if (settings.rememberSession) {
-      this.saveSession(user);
+  getSessionSettings(): any {
+    try {
+      const settings = localStorage.getItem(this.SETTINGS_KEY);
+      return settings ? JSON.parse(settings) : {};
+    } catch (error) {
+      console.error('Failed to get session settings:', error);
+      return {};
+    }
+  }
+
+  saveSessionSettings(settings: any): void {
+    try {
+      localStorage.setItem(this.SETTINGS_KEY, JSON.stringify(settings));
+    } catch (error) {
+      console.error('Failed to save session settings:', error);
     }
   }
 }

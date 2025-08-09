@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -10,140 +11,132 @@ import { RingtoneService } from "@/lib/ringtone";
 import { storage } from "@/lib/user";
 import { getInitials } from "@/lib/utils";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // Added for clarity
-  const [incomingCall, setIncomingCall] = useState<any>(null); // Added for call state
-  const [callState, setCallState] = useState<'idle' | 'ringing' | 'connected' | 'ended'>('idle'); // Added for call state
-  const [activeCall, setActiveCall] = useState<any>(null); // Added for active call state
-  const [ws, setWs] = useState<WebSocket | null>(null); // Added for WebSocket instance
-  const [ringtoneService] = useState(() => new RingtoneService()); // Initialize ringtone service
+  const [ringtoneService] = useState(() => new RingtoneService());
 
-  // Initialize WebSocket connection when user is logged in
-  useWebSocket(user?.id || undefined);
+  // WebSocket hook
+  const { isConnected, addMessageHandler, disconnect } = useWebSocket(user?.id);
 
   useEffect(() => {
     // Check for stored session on app start
-    const storedUser = sessionManager.getSession();
-    if (storedUser) {
-      setUser(storedUser);
-      setIsAuthenticated(true); // Set authenticated state
+    try {
+      const storedUser = sessionManager.getSession();
+      if (storedUser) {
+        setUser(storedUser);
+      }
+    } catch (error) {
+      console.error('Error loading stored session:', error);
+      // Clear corrupted data
+      sessionManager.clearSession();
+      storage.removeUser();
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
+  // Handle WebSocket messages
+  useEffect(() => {
+    if (!user) return;
+
+    const cleanup: (() => void)[] = [];
+
+    // Handle incoming call
+    cleanup.push(addMessageHandler('incoming_call', (data) => {
+      console.log('Incoming call received:', data);
+      
+      const incomingCallData = {
+        callId: data.callId,
+        callerName: data.callerInfo?.displayName || 'Unknown',
+        callerInitials: getInitials(data.callerInfo?.displayName || 'Unknown'),
+        callerId: data.callerId
+      };
+
+      // Play ringtone if needed
+      if (data.shouldPlayRingtone) {
+        ringtoneService.startIncomingCallRingtone();
+      }
+
+      // Show notification
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('Incoming Call', {
+          body: `${incomingCallData.callerName} is calling you`,
+          icon: '/favicon.ico'
+        });
+      }
+    }));
+
+    // Handle call events
+    cleanup.push(addMessageHandler('call_ringing', () => {
+      ringtoneService.startOutgoingCallRingtone();
+    }));
+
+    cleanup.push(addMessageHandler('call_accepted', () => {
+      ringtoneService.stopRingtone();
+      ringtoneService.playCallConnectedSound();
+    }));
+
+    cleanup.push(addMessageHandler('call_ended', () => {
+      ringtoneService.stopRingtone();
+    }));
+
+    return () => {
+      cleanup.forEach(fn => fn());
+    };
+  }, [user, addMessageHandler, ringtoneService]);
+
   const handleLogin = (userData: User) => {
-    sessionManager.saveSession(userData);
-    setUser(userData);
-    setIsAuthenticated(true); // Set authenticated state on login
+    try {
+      sessionManager.saveSession(userData);
+      setUser(userData);
+    } catch (error) {
+      console.error('Error saving session:', error);
+    }
   };
 
   const handleLogout = () => {
-    if (ws) {
-      ws.close();
-      setWs(null);
-    }
-
-    // Clear all user data and session information
-    storage.removeUser();
-    sessionManager.clearSession();
-
-    // Reset all state
-    setUser(null);
-    setIsAuthenticated(false);
-    setIncomingCall(null);
-    setActiveCall(null);
-    setCallState('idle');
-
-    // Stop any playing ringtones
-    ringtoneService.stopRingtone();
-
-    // Force page reload to ensure clean state
-    setTimeout(() => {
-      window.location.reload();
-    }, 100);
-  };
-
-  // Mocking the message handler for the purpose of the provided snippet
-  // In a real app, this would be part of the useWebSocket hook or managed globally
-  const handleWebSocketMessage = (event: MessageEvent) => {
     try {
-      const data = JSON.parse(event.data);
+      // Disconnect WebSocket
+      disconnect();
 
-      switch (data.type) {
-        case 'incoming_call':
-          const incomingCallData = {
-            callId: data.callId,
-            callerName: data.callerInfo?.displayName || 'Unknown',
-            callerInitials: getInitials(data.callerInfo?.displayName || 'Unknown'),
-            callerId: data.callerId
-          };
+      // Stop any playing sounds
+      ringtoneService.stopRingtone();
 
-          setIncomingCall(incomingCallData);
+      // Clear all data
+      storage.removeUser();
+      sessionManager.clearSession();
 
-          // Play incoming ringtone
-          if (data.shouldPlayRingtone) {
-            ringtoneService.startIncomingCallRingtone();
-          }
+      // Reset state
+      setUser(null);
 
-          // Show browser notification
-          if (data.shouldShowNotification && 'Notification' in window) {
-            if (Notification.permission === 'granted') {
-              new Notification('Incoming Call', {
-                body: `${incomingCallData.callerName} is calling you`,
-                icon: '/favicon.ico',
-                requireInteraction: true
-              });
-            } else if (Notification.permission !== 'denied') {
-              Notification.requestPermission().then(permission => {
-                if (permission === 'granted') {
-                  new Notification('Incoming Call', {
-                    body: `${incomingCallData.callerName} is calling you`,
-                    icon: '/favicon.ico',
-                    requireInteraction: true
-                  });
-                }
-              });
-            }
-          }
-          break;
-
-        case 'call_ringing':
-          // Play outgoing ringtone when call is ringing
-          ringtoneService.startOutgoingCallRingtone();
-          break;
-
-        case 'call_accepted':
-          setCallState('connected');
-          setActiveCall(prev => prev ? { ...prev, isConnected: true } : null);
-          ringtoneService.stopRingtone();
-          ringtoneService.playCallConnectedSound();
-          break;
-
-        case 'call_ended':
-          setCallState('ended');
-          setActiveCall(null);
-          ringtoneService.stopRingtone();
-          break;
-
-        // Handle other message types as needed
-      }
+      // Optional: Force reload for clean state
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
     } catch (error) {
-      console.error("Failed to parse WebSocket message:", error);
+      console.error('Error during logout:', error);
+      // Force reload even if there's an error
+      window.location.reload();
     }
   };
-
-  // WebSocket connection is handled by useWebSocket hook
-  // Remove the duplicate WebSocket connection logic
-
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading Globalink...</p>
+        </div>
       </div>
     );
   }
@@ -152,7 +145,11 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen bg-gray-50">
         {user ? (
-          <HomePage user={user} onLogout={handleLogout} />
+          <HomePage 
+            user={user} 
+            onLogout={handleLogout}
+            isConnected={isConnected}
+          />
         ) : (
           <UnifiedAuthPage onLogin={handleLogin} />
         )}

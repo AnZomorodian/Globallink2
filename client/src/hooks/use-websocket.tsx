@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback, useRef } from 'react';
 
 interface WebSocketMessage {
@@ -6,123 +7,136 @@ interface WebSocketMessage {
 }
 
 export function useWebSocket(userId?: string) {
-  const [socket, setSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
   const messageHandlers = useRef<Map<string, (message: any) => void>>(new Map());
   const reconnectAttempts = useRef(0);
-  const maxReconnectAttempts = 5;
-
-  // Mock user object for demonstration purposes. In a real app, this would come from context or state.
-  const user = userId ? { id: userId } : null;
-
-  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimer = useRef<NodeJS.Timeout | null>(null);
+  const maxReconnectAttempts = 3;
 
   const connect = useCallback(() => {
-    if (!userId) return;
+    if (!userId || wsRef.current?.readyState === WebSocket.OPEN) {
+      return;
+    }
 
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    console.log('Connecting to WebSocket:', wsUrl);
+    // Clear any existing reconnect timer
+    if (reconnectTimer.current) {
+      clearTimeout(reconnectTimer.current);
+      reconnectTimer.current = null;
+    }
 
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
+    try {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
 
-    ws.onopen = () => {
-      console.log('WebSocket connected');
-      setIsConnected(true);
-      reconnectAttempts.current = 0;
+      ws.onopen = () => {
+        console.log('WebSocket connected successfully');
+        setIsConnected(true);
+        reconnectAttempts.current = 0;
 
-      // Send user connection message
-      if (ws.readyState === WebSocket.OPEN && user) {
+        // Send authentication message
         ws.send(JSON.stringify({
           type: 'user_connected',
-          userId: user.id
+          userId: userId
         }));
-      }
-    };
+      };
 
-    ws.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        const handler = messageHandlers.current.get(message.type);
-        if (handler) {
-          handler(message);
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          const handler = messageHandlers.current.get(message.type);
+          if (handler) {
+            handler(message);
+          }
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
         }
-      } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
-      }
-    };
+      };
 
-    ws.onclose = (event) => {
-      console.log('WebSocket closed:', event.code, event.reason);
-      setIsConnected(false);
-      wsRef.current = null; // Ensure wsRef is updated
+      ws.onclose = (event) => {
+        console.log('WebSocket closed:', event.code);
+        setIsConnected(false);
+        wsRef.current = null;
 
-      // Attempt to reconnect
-      if (reconnectAttempts.current < maxReconnectAttempts) {
-        reconnectAttempts.current++;
-        const delay = 1000 * Math.pow(2, reconnectAttempts.current);
-        console.log(`Reconnecting in ${delay}ms...`);
-        setTimeout(() => {
-          connect();
-        }, delay);
-      }
-    };
+        // Only attempt reconnection if we haven't exceeded max attempts
+        if (reconnectAttempts.current < maxReconnectAttempts && userId) {
+          reconnectAttempts.current++;
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 10000);
+          
+          reconnectTimer.current = setTimeout(() => {
+            if (userId) {
+              connect();
+            }
+          }, delay);
+        }
+      };
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      // The onclose event will handle reconnection logic
-    };
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
 
-    setSocket(ws); // Set the socket state
-  }, [userId, user]); // Include user in dependencies
+    } catch (error) {
+      console.error('Failed to create WebSocket connection:', error);
+    }
+  }, [userId]);
 
-  const cleanup = useCallback(() => {
+  const disconnect = useCallback(() => {
+    if (reconnectTimer.current) {
+      clearTimeout(reconnectTimer.current);
+      reconnectTimer.current = null;
+    }
+
     if (wsRef.current) {
-      // Send disconnect message before closing
-      if (wsRef.current.readyState === WebSocket.OPEN && user) {
+      if (wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.send(JSON.stringify({
           type: 'user_disconnected',
-          userId: user.id
+          userId: userId
         }));
       }
       wsRef.current.close();
       wsRef.current = null;
     }
+    
     setIsConnected(false);
-  }, [user]); // Include user in dependencies
+    reconnectAttempts.current = 0;
+  }, [userId]);
 
   useEffect(() => {
     if (userId) {
       connect();
+    } else {
+      disconnect();
     }
 
-    return cleanup; // Return the cleanup function
-  }, [userId, connect, cleanup]); // Include dependencies
+    return () => {
+      disconnect();
+    };
+  }, [userId, connect, disconnect]);
 
   const sendMessage = useCallback((message: WebSocketMessage) => {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify(message));
-    } else if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      // Fallback if socket state is not updated yet but wsRef.current is available
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(message));
-    } else {
-      console.warn('WebSocket is not connected. Message not sent:', message);
+      return true;
     }
-  }, [socket]); // Dependency on socket
+    console.warn('WebSocket not connected. Message not sent:', message);
+    return false;
+  }, []);
 
   const addMessageHandler = useCallback((type: string, handler: (message: any) => void) => {
     messageHandlers.current.set(type, handler);
-  }, []);
-
-  const removeMessageHandler = useCallback((type: string) => {
-    messageHandlers.current.delete(type);
+    
+    return () => {
+      messageHandlers.current.delete(type);
+    };
   }, []);
 
   return {
     isConnected,
     sendMessage,
     addMessageHandler,
-    removeMessageHandler
+    disconnect
   };
 }
