@@ -57,7 +57,19 @@ Preferred communication style: Simple, everyday language.
 - **Development Tools**: Replit-specific plugins for development environment integration
 - **Build Tools**: PostCSS and Autoprefixer for CSS processing
 
-# Recent Updates (January 2025)
+# Recent Updates (August 2025)
+
+## Major Bug Fixes and Simplifications
+- ✅ **Fixed Authentication Crashes**: Resolved white page issues after signup by fixing TypeScript errors and simplifying auth flow
+- ✅ **Streamlined Registration**: Default to signup mode and simplified login/signup toggling for better user experience  
+- ✅ **Fixed QuickActions Component**: Resolved PresenceService crashes by adding missing methods and removing broken dependencies
+- ✅ **Enhanced Form Validation**: Fixed form input issues and improved error handling across all authentication flows
+- ✅ **Improved Error Handling**: Added comprehensive error boundaries and graceful fallbacks for better stability
+- ✅ **Country Restrictions**: Limited phone number support to Iran, Italy, China, and Turkey only as requested
+- ✅ **Code Language**: Ensured all code, comments, and variables are in English language only
+- ✅ **Documentation Update**: Created comprehensive README.md with installation, usage, and architecture details
+
+# Previous Updates (January 2025)
 
 - ✅ **WebRTC Voice Calling**: Added real peer-to-peer voice communication with echo cancellation and noise suppression
 - ✅ **User Data Persistence**: Implemented localStorage-based user session management

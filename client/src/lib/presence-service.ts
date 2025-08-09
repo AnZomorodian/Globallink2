@@ -14,8 +14,8 @@ interface PresenceData {
 export class PresenceService {
   private static readonly PRESENCE_KEY = 'globalink_presence';
   private static readonly ACTIVITY_TIMEOUT = 5 * 60 * 1000; // 5 minutes
-  private activityTimer: number | null = null;
-  private isActive = true;
+  private static activityTimer: number | null = null;
+  private static isActive = true;
 
   static getPresence(): PresenceData {
     const stored = localStorage.getItem(this.PRESENCE_KEY);
@@ -93,5 +93,25 @@ export class PresenceService {
       case 'idle': return '💤';
       default: return '';
     }
+  }
+
+  static getOnlineUserCount(): number {
+    // Return mock data for now
+    return Math.floor(Math.random() * 50) + 10;
+  }
+
+  static getTotalUsers(): number {
+    // Return mock data for now
+    return Math.floor(Math.random() * 200) + 100;
+  }
+
+  static isUserOnline(userId: string): boolean {
+    // Mock implementation - in real app this would check actual user status
+    return Math.random() > 0.5;
+  }
+
+  static getUserStatus(userId: string): string {
+    const statuses = ['Online', 'Away', 'Busy', 'Offline'];
+    return statuses[Math.floor(Math.random() * statuses.length)];
   }
 }

@@ -19,7 +19,7 @@ interface AuthPageProps {
 
 export default function AuthPage({ onLogin, onSwitchToSignUp }: AuthPageProps) {
   const { toast } = useToast();
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(false); // Default to signup for easier access
   
   const loginForm = useForm({
     defaultValues: {
@@ -101,7 +101,7 @@ export default function AuthPage({ onLogin, onSwitchToSignUp }: AuthPageProps) {
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Globalink</h1>
             <p className="text-gray-600">
-              {isLogin ? "Welcome back! Sign in to your account" : "Connect instantly with voice calls"}
+              {isLogin ? "Enter your username to continue" : "Create your account instantly"}
             </p>
             
             <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg mt-4">
@@ -125,7 +125,7 @@ export default function AuthPage({ onLogin, onSwitchToSignUp }: AuthPageProps) {
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Quick Start
+                Sign Up
               </button>
             </div>
           </div>
@@ -213,14 +213,14 @@ export default function AuthPage({ onLogin, onSwitchToSignUp }: AuthPageProps) {
           
           <div className="text-center mt-6">
             <p className="text-sm text-gray-600">
-              Want to create a full account with more features?
+              {!isLogin ? "Already have an account?" : "Need a new account?"}
             </p>
             <Button 
               variant="link" 
-              onClick={onSwitchToSignUp}
+              onClick={() => setIsLogin(!isLogin)}
               className="text-primary font-medium"
             >
-              Create Full Account
+              {!isLogin ? "Sign In Instead" : "Create Account"}
             </Button>
           </div>
         </CardContent>
