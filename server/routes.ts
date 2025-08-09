@@ -156,6 +156,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Check if user exists
+  app.get("/api/auth/check-user/:username", async (req, res) => {
+    try {
+      const user = await storage.getUserByUsername(req.params.username);
+      if (user) {
+        res.status(200).json({ exists: true });
+      } else {
+        res.status(404).json({ exists: false });
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Update user profile
   app.patch("/api/users/:userId", async (req, res) => {
     try {

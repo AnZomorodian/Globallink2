@@ -24,7 +24,6 @@ import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
 import { CallService } from "@/lib/call-service";
 import { WebRTCService } from "@/lib/webrtc-service";
 import { RingtoneService } from "@/lib/ringtone";
-import userManager from "@/lib/user.js";
 import { z } from "zod";
 import type { User } from "@shared/schema";
 

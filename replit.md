@@ -76,6 +76,9 @@ Preferred communication style: Simple, everyday language.
 - ✅ **Messenger-style Direct Messaging**: Added Facebook Messenger-style chat interface with real-time messaging
 - ✅ **Enhanced WebRTC Permissions**: Added comprehensive webcam and microphone permission handling for Chrome browsers
 - ✅ **Professional Video Calling**: Improved video call interface with proper media device permission requests
+- ✅ **Unified Authentication**: Merged login/signup into single intelligent form that detects existing users
+- ✅ **Session Management**: Added user-controlled session persistence with 30-day expiration and auto-login options
+- ✅ **Deployment Guide**: Created comprehensive deployment instructions for local/VPS deployment with SSL configuration
 
 # Previous Updates (January 2025)
 

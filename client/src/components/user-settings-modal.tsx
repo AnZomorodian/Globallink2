@@ -17,6 +17,7 @@ import { RINGTONE_OPTIONS, RingtoneService } from "@/lib/ringtones";
 import { ThemeService, type ThemeOption } from "@/lib/theme-service";
 import { LanguageService, LANGUAGE_OPTIONS, type LanguageOption } from "@/lib/language-service";
 import { SettingsService, type UserSettings } from "@/lib/settings-service";
+import { sessionManager } from "@/lib/session-manager";
 import { updateUserSchema } from "@shared/schema";
 import type { User } from "@shared/schema";
 import { z } from "zod";
@@ -47,6 +48,7 @@ export function UserSettingsModal({ isOpen, onClose, user, onLogout, onUserUpdat
   const [selectedTheme, setSelectedTheme] = useState<ThemeOption>(() => ThemeService.getTheme());
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageOption>(() => LanguageService.getLanguage());
   const [userSettings, setUserSettings] = useState<UserSettings>(() => SettingsService.getSettings());
+  const [sessionSettings, setSessionSettings] = useState(() => sessionManager.getSessionSettings());
 
   // Update settings when modal opens
   useEffect(() => {
@@ -54,6 +56,7 @@ export function UserSettingsModal({ isOpen, onClose, user, onLogout, onUserUpdat
       setUserSettings(SettingsService.getSettings());
       setSelectedTheme(ThemeService.getTheme());
       setSelectedLanguage(LanguageService.getLanguage());
+      setSessionSettings(sessionManager.getSessionSettings());
     }
   }, [isOpen]);
 
@@ -66,6 +69,17 @@ export function UserSettingsModal({ isOpen, onClose, user, onLogout, onUserUpdat
     
     toast({
       title: "Setting Updated",
+      description: `${key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} has been ${value ? 'enabled' : 'disabled'}`,
+    });
+  };
+
+  const handleSessionSettingChange = (key: string, value: boolean) => {
+    const newSettings = { ...sessionSettings, [key]: value };
+    setSessionSettings(newSettings);
+    sessionManager.setSessionSettings(newSettings);
+    
+    toast({
+      title: "Session Setting Updated",
       description: `${key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} has been ${value ? 'enabled' : 'disabled'}`,
     });
   };
@@ -839,6 +853,43 @@ export function UserSettingsModal({ isOpen, onClose, user, onLogout, onUserUpdat
               </div>
             </form>
           </Form>
+
+          {/* Session Management */}
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 p-6 rounded-xl shadow-inner">
+            <h3 className="text-lg font-semibold mb-4 text-purple-800 dark:text-purple-200">
+              🔐 Session Management
+            </h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-purple-100 dark:border-purple-800">
+                <div>
+                  <p className="font-medium text-purple-900 dark:text-purple-100">Remember Session</p>
+                  <p className="text-sm text-purple-600 dark:text-purple-300">Keep you logged in after refresh (30 days)</p>
+                </div>
+                <Switch
+                  checked={sessionSettings.rememberSession}
+                  onCheckedChange={(checked) => handleSessionSettingChange('rememberSession', checked)}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-purple-100 dark:border-purple-800">
+                <div>
+                  <p className="font-medium text-purple-900 dark:text-purple-100">Auto Login</p>
+                  <p className="text-sm text-purple-600 dark:text-purple-300">Automatically login when app opens</p>
+                </div>
+                <Switch
+                  checked={sessionSettings.autoLogin}
+                  onCheckedChange={(checked) => handleSessionSettingChange('autoLogin', checked)}
+                  disabled={!sessionSettings.rememberSession}
+                />
+              </div>
+              
+              {sessionSettings.rememberSession && (
+                <div className="text-xs text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 p-2 rounded">
+                  ℹ️ Your session will be saved locally and expire after 30 days of inactivity
+                </div>
+              )}
+            </div>
+          </div>
 
           <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
             <Button
