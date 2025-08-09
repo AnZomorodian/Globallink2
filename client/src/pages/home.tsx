@@ -659,7 +659,10 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
           {/* Quick Actions */}
           <QuickActions
             currentUserId={user.id}
-            onVoiceCall={(voiceId) => form.setValue("recipientId", voiceId) && form.handleSubmit(handleInitiateCall)()}
+            onVoiceCall={(voiceId) => {
+              form.setValue("recipientId", voiceId);
+              form.handleSubmit(handleInitiateCall)();
+            }}
             onVideoCall={(voiceId) => {
               setIsVideoEnabled(true);
               form.setValue("recipientId", voiceId);
