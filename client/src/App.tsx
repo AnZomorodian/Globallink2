@@ -6,9 +6,8 @@ import { sessionManager } from "@/lib/session-manager";
 import UnifiedAuthPage from "@/pages/unified-auth";
 import HomePage from "@/pages/home";
 import type { User } from "@shared/schema";
-import { ringtoneService } from "@/lib/ringtone-service"; // Assuming ringtoneService is available
-import { getInitials } from "@/lib/utils"; // Assuming getInitials is available
-import { storage } from "@/lib/storage"; // Assuming storage is available
+import { RingtoneService } from "@/lib/ringtone";
+import { storage } from "@/lib/user";
 
 const queryClient = new QueryClient();
 
@@ -20,6 +19,7 @@ export default function App() {
   const [callState, setCallState] = useState<'idle' | 'ringing' | 'connected' | 'ended'>('idle'); // Added for call state
   const [activeCall, setActiveCall] = useState<any>(null); // Added for active call state
   const [ws, setWs] = useState<WebSocket | null>(null); // Added for WebSocket instance
+  const [ringtoneService] = useState(() => new RingtoneService()); // Initialize ringtone service
 
   // Initialize WebSocket connection when user is logged in
   useWebSocket(user?.id || undefined);
