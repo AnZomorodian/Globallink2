@@ -18,7 +18,7 @@ export default function App() {
   const [authMode, setAuthMode] = useState<AuthMode>('login');
 
   // Initialize WebSocket connection when user is logged in
-  useWebSocket(user?.id || null);
+  useWebSocket(user?.id || undefined);
 
   useEffect(() => {
     // Check for stored user data on app start

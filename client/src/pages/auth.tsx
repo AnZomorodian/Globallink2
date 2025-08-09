@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { insertUserSchema } from "@shared/schema";
+import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 import type { User } from "@shared/schema";
 
@@ -28,20 +28,14 @@ export default function AuthPage({ onLogin, onSwitchToSignUp }: AuthPageProps) {
     },
   });
 
+  // Simple registration schema for basic signup
+  const registerSchema = z.object({
+    username: z.string().min(3, "Username must be at least 3 characters"),
+    displayName: z.string().min(2, "Display name must be at least 2 characters"),
+  });
+
   const registerForm = useForm({
-    resolver: zodResolver(insertUserSchema.omit({ 
-      email: true, 
-      password: true, 
-      confirmPassword: true,
-      firstName: true,
-      lastName: true,
-      phoneNumber: true,
-      countryCode: true,
-      companyName: true,
-      jobTitle: true,
-      birthDate: true,
-      bio: true,
-    })),
+    resolver: zodResolver(registerSchema),
     defaultValues: {
       username: "",
       displayName: "",

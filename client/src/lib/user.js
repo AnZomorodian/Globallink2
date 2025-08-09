@@ -146,4 +146,11 @@ class UserManager {
 // Create singleton instance
 const userManager = new UserManager();
 
+// Create storage interface that matches App.tsx expectations
+export const storage = {
+  getUser: () => userManager.getCurrentUser(),
+  setUser: (user) => userManager.setCurrentUser(user),
+  removeUser: () => userManager.clearUser()
+};
+
 export default userManager;
