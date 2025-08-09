@@ -7,6 +7,7 @@ export class WebRTCService {
   private isVideoEnabled = false;
   private connectionQuality: 'excellent' | 'good' | 'poor' = 'excellent';
   private statsInterval: number | null = null;
+
   private currentCallId: string | null = null;
 
   constructor(private sendMessage: (message: any) => void) {
@@ -90,8 +91,7 @@ export class WebRTCService {
     try {
       this.currentCallId = callId;
 
-      // Request permissions and get user media
-      await this.requestMediaPermissions(isVideoCall);
+      // Get user media
       this.localStream = await this.getUserMedia(isVideoCall);
 
       // Add tracks to peer connection
@@ -337,18 +337,62 @@ export class WebRTCService {
       throw new Error('Failed to access camera or microphone. Please check your device permissions.');
     }
   }
+}
 
-  async endCall(): Promise<void> {
+  async startScreenShare(): Promise<MediaStream | null> {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { frameRate: 30 },
+        audio: true
+      });
+      
+      // Replace video track in peer connection
+      if (this.peerConnection && this.localStream) {
+        const videoTrack = stream.getVideoTracks()[0];
+        const sender = this.peerConnection.getSenders().find(s => 
+          s.track && s.track.kind === 'video'
+        );
+        
+        if (sender && videoTrack) {
+          await sender.replaceTrack(videoTrack);
+        }
+      }
+      
+      return stream;
+    } catch (error) {
+      console.error('Error starting screen share:', error);
+      return null;
+    }
+  }
+
+  async stopScreenShare(): Promise<void> {
+    try {
+      // Get camera stream again
+      const stream = await this.getUserMedia(this.isVideoEnabled);
+      
+      if (this.peerConnection && stream) {
+        const videoTrack = stream.getVideoTracks()[0];
+        const sender = this.peerConnection.getSenders().find(s => 
+          s.track && s.track.kind === 'video'
+        );
+        
+        if (sender && videoTrack) {
+          await sender.replaceTrack(videoTrack);
+        }
+      }
+    } catch (error) {
+      console.error('Error stopping screen share:', error);
+    }
+  }
+
+  endCall() {
+    // Stop quality monitoring
+    this.stopQualityMonitoring();
+    
     // Stop local stream
     if (this.localStream) {
       this.localStream.getTracks().forEach(track => track.stop());
       this.localStream = null;
-    }
-
-    // Stop remote audio
-    if (this.remoteAudio) {
-      this.remoteAudio.remove();
-      this.remoteAudio = null;
     }
 
     // Close peer connection
@@ -357,14 +401,57 @@ export class WebRTCService {
       this.setupPeerConnection(); // Reset for next call
     }
 
-    // Stop quality monitoring
-    this.stopQualityMonitoring();
+    // Remove remote audio
+    if (this.remoteAudio) {
+      this.remoteAudio.remove();
+      this.remoteAudio = null;
+    }
+    // Clear remote video element
+    if (this.remoteVideo) {
+      this.remoteVideo.srcObject = null;
+    }
 
+    // Reset call ID
     this.currentCallId = null;
     this.isVideoEnabled = false;
+    this.connectionQuality = 'excellent';
   }
 
-  getIsVideoEnabled(): boolean {
-    return this.isVideoEnabled;
+  getConnectionState(): string {
+    return this.peerConnection?.connectionState || 'disconnected';
+  }
+
+  async getUserMedia(isVideoCall = false, facingMode = 'user'): Promise<MediaStream> {
+    try {
+      const constraints = {
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 48000,
+          channelCount: 2
+        },
+        video: isVideoCall ? {
+          width: { ideal: 1920, min: 640 },
+          height: { ideal: 1080, min: 480 },
+          frameRate: { ideal: 30, min: 15 },
+          facingMode: facingMode,
+          aspectRatio: 16/9
+        } : false
+      };
+
+      this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+      this.isVideoEnabled = isVideoCall;
+
+      // Update local video element if available
+      if (this.localVideo) {
+        this.localVideo.srcObject = this.localStream;
+      }
+
+      return this.localStream;
+    } catch (error) {
+      console.error('Error accessing media devices:', error);
+      throw error;
+    }
   }
 }

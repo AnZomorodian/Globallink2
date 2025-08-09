@@ -69,6 +69,14 @@ Preferred communication style: Simple, everyday language.
 - ✅ **Code Language**: Ensured all code, comments, and variables are in English language only
 - ✅ **Documentation Update**: Created comprehensive README.md with installation, usage, and architecture details
 
+## Latest Features (August 2025)
+- ✅ **Removed Quick Actions**: Completely removed Quick Actions section per user request
+- ✅ **Real-time Activity Feed**: Activity feed now shows real user activities without sample data, refreshes every 30 seconds
+- ✅ **Real User Statistics**: Online user counts and statistics now pull from actual user data via API
+- ✅ **Messenger-style Direct Messaging**: Added Facebook Messenger-style chat interface with real-time messaging
+- ✅ **Enhanced WebRTC Permissions**: Added comprehensive webcam and microphone permission handling for Chrome browsers
+- ✅ **Professional Video Calling**: Improved video call interface with proper media device permission requests
+
 # Previous Updates (January 2025)
 
 - ✅ **WebRTC Voice Calling**: Added real peer-to-peer voice communication with echo cancellation and noise suppression

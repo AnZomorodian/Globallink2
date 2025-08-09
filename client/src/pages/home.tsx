@@ -13,13 +13,14 @@ import { ActiveCallModal } from "@/components/active-call-modal";
 import { IncomingCallModal } from "@/components/incoming-call-modal";
 import { UserSettingsModal } from "@/components/user-settings-modal";
 import { MessagingPanel } from "@/components/messaging-panel";
+import { DirectMessaging } from "@/components/direct-messaging";
 import { InboxModal } from "@/components/inbox-modal";
 
 import { Footer } from "@/components/footer";
 import { ActivityFeed } from "@/components/activity-feed";
 import { StatusWidgets } from "@/components/status-widgets";
 import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
-import { QuickActions } from "@/components/quick-actions";
+
 import { CallService } from "@/lib/call-service";
 import { WebRTCService } from "@/lib/webrtc-service";
 import { RingtoneService } from "@/lib/ringtone";
@@ -656,20 +657,7 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
             </CardContent>
           </Card>
 
-          {/* Quick Actions */}
-          <QuickActions
-            currentUserId={user.id}
-            onVoiceCall={(voiceId) => {
-              form.setValue("recipientId", voiceId);
-              form.handleSubmit(handleInitiateCall)();
-            }}
-            onVideoCall={(voiceId) => {
-              setIsVideoEnabled(true);
-              form.setValue("recipientId", voiceId);
-              form.handleSubmit(handleInitiateCall)();
-            }}
-            onMessage={(voiceId, name) => setSelectedRecipient({ id: voiceId, name })}
-          />
+
 
           {/* Call History */}
           <Card>
@@ -751,29 +739,24 @@ export default function HomePage({ user: initialUser, onLogout }: HomePageProps)
       {/* Footer */}
       <Footer />
 
-      {/* Messaging Panel */}
+      {/* Direct Messaging */}
       {selectedRecipient && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-md h-[500px] relative">
-            <button 
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10 text-2xl leading-none"
-              onClick={() => setSelectedRecipient(null)}
-            >
-              ×
-            </button>
-            <MessagingPanel
-              recipientId={selectedRecipient.id}
-              recipientName={selectedRecipient.name}
-              currentUserId={user.id}
-              currentUserName={user.displayName}
-              onSendMessage={(message) => {
-                toast({
-                  title: "Message Sent",
-                  description: `Sent to ${selectedRecipient.name}`,
-                });
-              }}
-            />
-          </div>
+        <div className="fixed bottom-4 right-4 z-50">
+          <DirectMessaging
+            currentUserId={user.id}
+            recipientId={selectedRecipient.id}
+            recipientName={selectedRecipient.name}
+            onClose={() => setSelectedRecipient(null)}
+            onVoiceCall={(voiceId) => {
+              form.setValue("recipientId", voiceId);
+              form.handleSubmit(handleInitiateCall)();
+            }}
+            onVideoCall={(voiceId) => {
+              setIsVideoEnabled(true);
+              form.setValue("recipientId", voiceId);
+              form.handleSubmit(handleInitiateCall)();
+            }}
+          />
         </div>
       )}
 

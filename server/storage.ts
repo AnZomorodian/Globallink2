@@ -92,6 +92,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.users.values()).filter(user => user.isOnline);
   }
 
+  getAllUsers(): User[] {
+    return Array.from(this.users.values());
+  }
+
   async createCall(insertCall: InsertCall): Promise<Call> {
     const id = randomUUID();
     const call: Call = {

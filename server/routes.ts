@@ -140,6 +140,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user statistics
+  app.get('/api/users/stats', (req, res) => {
+    try {
+      const allUsers = storage.getAllUsers();
+      const onlineUsers = allUsers.filter(user => user.isOnline);
+      
+      res.json({
+        totalCount: allUsers.length,
+        onlineCount: onlineUsers.length
+      });
+    } catch (error) {
+      console.error('Error getting user stats:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   // Update user profile
   app.patch("/api/users/:userId", async (req, res) => {
     try {

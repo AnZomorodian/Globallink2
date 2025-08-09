@@ -29,6 +29,10 @@ export function ActivityFeed({ currentUserId, limit = 10 }: ActivityFeedProps) {
 
   useEffect(() => {
     loadActivities();
+    
+    // Real-time updates - refresh every 30 seconds
+    const interval = setInterval(loadActivities, 30000);
+    return () => clearInterval(interval);
   }, [currentUserId]);
 
   const loadActivities = () => {
@@ -36,38 +40,13 @@ export function ActivityFeed({ currentUserId, limit = 10 }: ActivityFeedProps) {
     const stored = localStorage.getItem(storageKey);
     const parsedActivities = stored ? JSON.parse(stored) : [];
     
-    // Add some sample activities if none exist
-    if (parsedActivities.length === 0) {
-      const sampleActivities = [
-        {
-          id: '1',
-          type: 'call',
-          title: 'Voice call completed',
-          description: 'Call with Demo User lasted 5:32',
-          timestamp: new Date(Date.now() - 1000 * 60 * 15), // 15 minutes ago
-          user: { name: 'Demo User', initials: 'DU' }
-        },
-        {
-          id: '2',
-          type: 'message',
-          title: 'New message received',
-          description: 'From Test Contact',
-          timestamp: new Date(Date.now() - 1000 * 60 * 45), // 45 minutes ago
-          user: { name: 'Test Contact', initials: 'TC' }
-        },
-        {
-          id: '3',
-          type: 'settings_changed',
-          title: 'Settings updated',
-          description: 'Profile information changed',
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-        }
-      ];
-      localStorage.setItem(storageKey, JSON.stringify(sampleActivities));
-      setActivities(sampleActivities);
-    } else {
-      setActivities(parsedActivities.slice(0, limit));
-    }
+    // Parse timestamps from stored activities
+    const processedActivities = parsedActivities.map((activity: any) => ({
+      ...activity,
+      timestamp: new Date(activity.timestamp)
+    }));
+    
+    setActivities(processedActivities.slice(0, limit));
   };
 
   const getActivityIcon = (type: Activity['type']) => {

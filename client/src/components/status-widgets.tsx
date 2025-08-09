@@ -11,16 +11,30 @@ interface StatusWidgetsProps {
 
 export function StatusWidgets({ isConnected, currentUserId }: StatusWidgetsProps) {
   const [connectionQuality, setConnectionQuality] = useState<'excellent' | 'good' | 'poor'>('good');
-  const [onlineUsers, setOnlineUsers] = useState(127);
+  const [onlineUsers, setOnlineUsers] = useState(0);
+  const [totalUsers, setTotalUsers] = useState(0);
   const [systemStatus, setSystemStatus] = useState<'operational' | 'degraded' | 'maintenance'>('operational');
   const [uptime, setUptime] = useState('99.9%');
 
   useEffect(() => {
-    // Simulate real-time updates
-    const interval = setInterval(() => {
-      setOnlineUsers(prev => prev + Math.floor(Math.random() * 3) - 1);
-    }, 30000);
-
+    // Load real user statistics
+    const loadUserStats = async () => {
+      try {
+        const response = await fetch('/api/users/stats');
+        if (response.ok) {
+          const stats = await response.json();
+          setOnlineUsers(stats.onlineCount || 0);
+          setTotalUsers(stats.totalCount || 0);
+        }
+      } catch (error) {
+        console.error('Failed to load user stats:', error);
+      }
+    };
+    
+    loadUserStats();
+    
+    // Update stats every 30 seconds
+    const interval = setInterval(loadUserStats, 30000);
     return () => clearInterval(interval);
   }, []);
 
