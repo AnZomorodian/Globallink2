@@ -34,6 +34,11 @@ class UserManager {
   clearUser() {
     this.currentUser = null;
     localStorage.removeItem(this.STORAGE_KEY);
+    // Also clear any session-related data
+    localStorage.removeItem('globalink_session');
+    localStorage.removeItem('globalink_session_settings');
+    // Clear any cached data
+    sessionStorage.clear();
   }
 
   // Get user's voice ID

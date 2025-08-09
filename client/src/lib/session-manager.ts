@@ -86,6 +86,10 @@ class SessionManager {
   clearSession(): void {
     try {
       localStorage.removeItem(this.SESSION_KEY);
+      localStorage.removeItem(this.SETTINGS_KEY);
+      // Also clear user data
+      localStorage.removeItem('globalink_user');
+      sessionStorage.clear();
     } catch (error) {
       console.error('Error clearing session:', error);
     }

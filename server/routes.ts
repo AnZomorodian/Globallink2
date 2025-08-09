@@ -222,6 +222,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               duration: null
             });
 
+            // Get caller info for the notification
+            const callerInfo = await storage.getUser(callerId);
+
             // Send call request to recipient
             const recipientWs = clients.get(recipientId);
             if (recipientWs && recipientWs.readyState === WebSocket.OPEN) {
@@ -229,7 +232,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 type: 'incoming_call',
                 callId: call.id,
                 callerId,
-                callerInfo: await storage.getUser(callerId)
+                callerInfo: callerInfo,
+                shouldPlayRingtone: true,
+                shouldShowNotification: true
+              }));
+
+              // Send confirmation to caller that call is ringing
+              ws.send(JSON.stringify({
+                type: 'call_ringing',
+                callId: call.id
               }));
             } else {
               // Recipient is offline

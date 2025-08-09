@@ -84,10 +84,20 @@ export default function AuthPage({ onLogin, onSwitchToSignUp }: AuthPageProps) {
   });
 
   const onLoginSubmit = (data: { username: string }) => {
+    // Clear any existing session data first
+    localStorage.removeItem('globalink_user');
+    localStorage.removeItem('globalink_session');
+    sessionStorage.clear();
+    
     loginMutation.mutate(data);
   };
 
   const onRegisterSubmit = (data: { username: string; displayName: string }) => {
+    // Clear any existing session data first
+    localStorage.removeItem('globalink_user');
+    localStorage.removeUser('globalink_session');
+    sessionStorage.clear();
+    
     registerMutation.mutate(data);
   };
 
