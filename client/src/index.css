@@ -1,0 +1,149 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root.cosmic {
+  --primary: 219 100% 62%;
+  --primary-foreground: 210 20% 98%;
+  --background: 224 71% 4%;
+  --foreground: 210 20% 98%;
+  --muted: 215 27% 17%;
+  --accent: 264 100% 82%;
+  --border: 215 27% 17%;
+}
+
+:root.nature {
+  --primary: 142 76% 36%;
+  --primary-foreground: 355 20% 98%;
+  --background: 138 100% 96%;
+  --foreground: 142 100% 8%;
+  --muted: 138 20% 85%;
+  --accent: 48 96% 53%;
+  --border: 138 20% 82%;
+}
+
+:root {
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(222.2 84% 4.9%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(222.2 84% 4.9%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(222.2 84% 4.9%);
+  --primary: hsl(210 83% 53%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(210 40% 95%);
+  --secondary-foreground: hsl(222.2 84% 4.9%);
+  --muted: hsl(210 40% 98%);
+  --muted-foreground: hsl(215.4 16.3% 46.9%);
+  --accent: hsl(210 40% 95%);
+  --accent-foreground: hsl(222.2 84% 4.9%);
+  --destructive: hsl(0 84% 60%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --success: hsl(122 39% 49%);
+  --success-foreground: hsl(0 0% 100%);
+  --warning: hsl(38 92% 50%);
+  --warning-foreground: hsl(0 0% 100%);
+  --border: hsl(214.3 31.8% 91.4%);
+  --input: hsl(214.3 31.8% 91.4%);
+  --ring: hsl(210 83% 53%);
+  --chart-1: hsl(210 83% 53%);
+  --chart-2: hsl(159.7826 100% 36.0784%);
+  --chart-3: hsl(42.0290 92.8251% 56.2745%);
+  --chart-4: hsl(147.1429 78.5047% 41.9608%);
+  --chart-5: hsl(341.4894 75.2000% 50.9804%);
+  --sidebar: hsl(0 0% 100%);
+  --sidebar-foreground: hsl(222.2 84% 4.9%);
+  --sidebar-primary: hsl(210 83% 53%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(210 40% 95%);
+  --sidebar-accent-foreground: hsl(222.2 84% 4.9%);
+  --sidebar-border: hsl(214.3 31.8% 91.4%);
+  --sidebar-ring: hsl(210 83% 53%);
+  --font-sans: Inter, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  --radius: 1.3rem;
+}
+
+.dark {
+  --background: hsl(222.2 84% 4.9%);
+  --foreground: hsl(210 40% 98%);
+  --card: hsl(222.2 84% 4.9%);
+  --card-foreground: hsl(210 40% 98%);
+  --popover: hsl(222.2 84% 4.9%);
+  --popover-foreground: hsl(210 40% 98%);
+  --primary: hsl(210 83% 53%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(217.2 32.6% 17.5%);
+  --secondary-foreground: hsl(210 40% 98%);
+  --muted: hsl(217.2 32.6% 17.5%);
+  --muted-foreground: hsl(215 20.2% 65.1%);
+  --accent: hsl(217.2 32.6% 17.5%);
+  --accent-foreground: hsl(210 40% 98%);
+  --destructive: hsl(0 62.8% 30.6%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --success: hsl(122 39% 49%);
+  --success-foreground: hsl(0 0% 100%);
+  --warning: hsl(38 92% 50%);
+  --warning-foreground: hsl(0 0% 100%);
+  --border: hsl(217.2 32.6% 17.5%);
+  --input: hsl(217.2 32.6% 17.5%);
+  --ring: hsl(210 83% 53%);
+  --sidebar: hsl(222.2 84% 4.9%);
+  --sidebar-foreground: hsl(210 40% 98%);
+  --sidebar-primary: hsl(210 83% 53%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(217.2 32.6% 17.5%);
+  --sidebar-accent-foreground: hsl(210 40% 98%);
+  --sidebar-border: hsl(217.2 32.6% 17.5%);
+  --sidebar-ring: hsl(210 83% 53%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+.gradient-bg {
+  background: linear-gradient(135deg, hsl(210 83% 53%) 0%, hsl(220 83% 45%) 100%);
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2s infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+}
+
+.animate-ping-slow {
+  animation: ping-slow 3s infinite;
+}
+
+@keyframes ping-slow {
+  0% {
+    transform: scale(1);
+    opacity: 0.25;
+  }
+  75%, 100% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+}

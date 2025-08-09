@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceConnect - Voice Calling App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: {
+                    'inter': ['Inter', 'sans-serif'],
+                },
+                colors: {
+                    primary: '#1976D2',
+                    secondary: '#43A047',
+                    accent: '#FF5722',
+                    success: '#4CAF50',
+                    error: '#F44336',
+                    warning: '#FF9800',
+                }
+            }
+        }
+    };
+    </script>
+</head>
+<body class="font-inter bg-gray-50 text-gray-900">
+
+<!-- @COMPONENT: App Container -->
+<div id="app" class="min-h-screen">
+
+    <!-- @COMPONENT: AuthScreen [shown on initial load] -->
+    <div id="authScreen" class="min-h-screen bg-gradient-to-br from-primary to-blue-700 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-phone text-white text-2xl"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">VoiceConnect</h1>
+                <p class="text-gray-600">Connect instantly with voice calls</p>
+            </div>
+            
+            <form class="space-y-6" data-event="submit:handleAuth" data-implementation="Handle user registration/login">
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all duration-200"
+                        placeholder="Enter your username"
+                        data-bind="user.username"
+                        data-mock="true"
+                    />
+                </div>
+                
+                <div>
+                    <label for="displayName" class="block text-sm font-medium text-gray-700 mb-2">Display Name</label>
+                    <input 
+                        type="text" 
+                        id="displayName" 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all duration-200"
+                        placeholder="Enter your display name"
+                        data-bind="user.displayName"
+                        data-mock="true"
+                    />
+                </div>
+                
+                <button 
+                    type="submit" 
+                    class="w-full bg-primary text-white py-3 rounded-xl font-medium hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 transition-all duration-200"
+                    data-implementation="Generate unique user ID and proceed to main app"
+                >
+                    Get Started
+                </button>
+            </form>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: AuthScreen -->
+
+    <!-- @COMPONENT: MainApp [shown after authentication] -->
+    <div id="mainApp" class="hidden min-h-screen bg-gray-50">
+        
+        <!-- @COMPONENT: Header -->
+        <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+                            <i class="fas fa-phone text-white text-lg"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-bold text-gray-900">VoiceConnect</h1>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4">
+                        <!-- User Status Indicator -->
+                        <div class="flex items-center space-x-2 bg-success/10 text-success px-3 py-1 rounded-full">
+                            <div class="w-2 h-2 bg-success rounded-full"></div>
+                            <span class="text-sm font-medium">Online</span>
+                        </div>
+                        
+                        <!-- User Menu -->
+                        <div class="relative">
+                            <button class="flex items-center space-x-3 text-gray-700 hover:text-gray-900" data-event="click:toggleUserMenu">
+                                <div class="w-8 h-8 bg-gradient-to-br from-primary to-blue-700 rounded-full flex items-center justify-center">
+                                    <span class="text-white text-sm font-medium" data-bind="user.initials" data-mock="true">JD</span>
+                                </div>
+                                <div class="hidden sm:block text-left">
+                                    <div class="text-sm font-medium" data-bind="user.displayName" data-mock="true">John Doe</div>
+                                    <div class="text-xs text-gray-500" data-bind="user.id" data-mock="true">ID: VC-7429</div>
+                                </div>
+                                <i class="fas fa-chevron-down text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <!-- @END_COMPONENT: Header -->
+
+        <!-- @COMPONENT: MainContent -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            
+            <!-- @COMPONENT: UserIdCard -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0">
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-900 mb-1">Your Voice ID</h2>
+                        <p class="text-gray-600 text-sm">Share this ID with others to receive calls</p>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-gray-100 px-4 py-2 rounded-xl">
+                            <span class="font-mono text-lg font-semibold text-gray-900" data-bind="user.voiceId" data-mock="true">VC-7429</span>
+                        </div>
+                        <button class="bg-primary text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors duration-200" data-event="click:copyVoiceId">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: UserIdCard -->
+
+            <!-- @COMPONENT: CallSection -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                
+                <!-- Make Call Panel -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+                        <i class="fas fa-phone text-primary mr-3"></i>
+                        Make a Call
+                    </h3>
+                    
+                    <form class="space-y-4" data-event="submit:initiateCall" data-implementation="Start voice call to specified user ID">
+                        <div>
+                            <label for="recipientId" class="block text-sm font-medium text-gray-700 mb-2">Recipient Voice ID</label>
+                            <input 
+                                type="text" 
+                                id="recipientId" 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                                placeholder="Enter Voice ID (e.g., VC-1234)"
+                                data-bind="call.recipientId"
+                                data-mock="true"
+                            />
+                        </div>
+                        
+                        <button 
+                            type="submit" 
+                            class="w-full bg-success text-white py-3 rounded-xl font-medium hover:bg-green-600 focus:ring-4 focus:ring-green-200 transition-all duration-200 flex items-center justify-center space-x-2"
+                        >
+                            <i class="fas fa-phone"></i>
+                            <span>Start Voice Call</span>
+                        </button>
+                    </form>
+
+                    <!-- Quick Connect -->
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <h4 class="text-sm font-medium text-gray-700 mb-3">Quick Connect</h4>
+                        <!-- @MAP: recentContacts.map(contact => ( -->
+                        <div class="space-y-2">
+                            <button class="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-colors duration-200" data-event="click:quickCall" data-bind="contact.id" data-mock="true">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                                        <span class="text-white text-xs font-medium" data-mock="true">AS</span>
+                                    </div>
+                                    <div class="text-left">
+                                        <div class="text-sm font-medium text-gray-900" data-mock="true">Alice Smith</div>
+                                        <div class="text-xs text-gray-500" data-mock="true">VC-8521</div>
+                                    </div>
+                                </div>
+                                <i class="fas fa-phone text-success"></i>
+                            </button>
+                            
+                            <button class="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-colors duration-200" data-event="click:quickCall" data-bind="contact.id" data-mock="true">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center">
+                                        <span class="text-white text-xs font-medium" data-mock="true">BJ</span>
+                                    </div>
+                                    <div class="text-left">
+                                        <div class="text-sm font-medium text-gray-900" data-mock="true">Bob Johnson</div>
+                                        <div class="text-xs text-gray-500" data-mock="true">VC-3847</div>
+                                    </div>
+                                </div>
+                                <i class="fas fa-phone text-success"></i>
+                            </button>
+                        </div>
+                        <!-- @END_MAP )) -->
+                    </div>
+                </div>
+
+                <!-- Call History -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+                        <i class="fas fa-history text-primary mr-3"></i>
+                        Call History
+                    </h3>
+                    
+                    <!-- @MAP: callHistory.map(call => ( -->
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-colors duration-200">
+                            <div class="flex items-center space-x-3">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-phone-alt text-success w-4"></i>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900" data-mock="true">Alice Smith</div>
+                                    <div class="text-xs text-gray-500" data-mock="true">VC-8521 • 2 minutes ago</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm text-gray-600" data-mock="true">5:32</div>
+                                <div class="text-xs text-success" data-mock="true">Completed</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-colors duration-200">
+                            <div class="flex items-center space-x-3">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-phone text-error w-4"></i>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900" data-mock="true">Bob Johnson</div>
+                                    <div class="text-xs text-gray-500" data-mock="true">VC-3847 • 1 hour ago</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm text-gray-600" data-mock="true">--</div>
+                                <div class="text-xs text-error" data-mock="true">Missed</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-colors duration-200">
+                            <div class="flex items-center space-x-3">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-phone-alt text-success w-4"></i>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900" data-mock="true">Charlie Brown</div>
+                                    <div class="text-xs text-gray-500" data-mock="true">VC-9154 • 3 hours ago</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm text-gray-600" data-mock="true">12:45</div>
+                                <div class="text-xs text-success" data-mock="true">Completed</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                    
+                    <button class="w-full mt-4 text-primary text-sm font-medium hover:text-blue-700 transition-colors duration-200">
+                        View All History
+                    </button>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: CallSection -->
+            
+        </main>
+        <!-- @END_COMPONENT: MainContent -->
+    </div>
+    <!-- @END_COMPONENT: MainApp -->
+
+    <!-- @COMPONENT: ActiveCallModal [overlay during calls] -->
+    <div id="activeCallModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-auto">
+            
+            <!-- Call Header -->
+            <div class="text-center p-8 pb-6">
+                <!-- Caller Avatar -->
+                <div class="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full mx-auto mb-4 flex items-center justify-center">
+                    <span class="text-white text-2xl font-bold" data-bind="call.callerInitials" data-mock="true">AS</span>
+                </div>
+                
+                <!-- Caller Info -->
+                <h3 class="text-xl font-semibold text-gray-900 mb-1" data-bind="call.callerName" data-mock="true">Alice Smith</h3>
+                <p class="text-gray-500 text-sm mb-2" data-bind="call.callerId" data-mock="true">VC-8521</p>
+                
+                <!-- Call Status -->
+                <div id="callStatus" class="text-primary text-sm font-medium">
+                    <span data-mock="true">Connecting...</span>
+                </div>
+            </div>
+
+            <!-- Call Duration (shown when connected) -->
+            <div id="callDuration" class="hidden text-center pb-4">
+                <div class="text-2xl font-mono font-semibold text-gray-900" data-bind="call.duration" data-mock="true">
+                    00:32
+                </div>
+            </div>
+
+            <!-- Call Controls -->
+            <div class="flex items-center justify-center space-x-6 p-8 pt-4">
+                <!-- Mute Button -->
+                <button id="muteBtn" class="w-14 h-14 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-all duration-200" data-event="click:toggleMute">
+                    <i class="fas fa-microphone text-gray-700"></i>
+                </button>
+                
+                <!-- End Call Button -->
+                <button class="w-16 h-16 bg-error hover:bg-red-600 rounded-full flex items-center justify-center transition-all duration-200" data-event="click:endCall">
+                    <i class="fas fa-phone-slash text-white text-lg"></i>
+                </button>
+                
+                <!-- Speaker Button -->
+                <button id="speakerBtn" class="w-14 h-14 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-all duration-200" data-event="click:toggleSpeaker">
+                    <i class="fas fa-volume-up text-gray-700"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: ActiveCallModal -->
+
+    <!-- @COMPONENT: IncomingCallModal [overlay for incoming calls] -->
+    <div id="incomingCallModal" class="hidden fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-auto">
+            
+            <!-- Incoming Call Header -->
+            <div class="text-center p-8 pb-6">
+                <!-- Caller Avatar with Animation -->
+                <div class="w-32 h-32 bg-gradient-to-br from-orange-500 to-red-500 rounded-full mx-auto mb-4 flex items-center justify-center relative">
+                    <span class="text-white text-3xl font-bold" data-bind="incomingCall.callerInitials" data-mock="true">BJ</span>
+                    <!-- Pulsing ring animation -->
+                    <div class="absolute inset-0 border-4 border-white rounded-full animate-pulse opacity-50"></div>
+                    <div class="absolute inset-0 border-4 border-white rounded-full animate-ping opacity-25"></div>
+                </div>
+                
+                <!-- Caller Info -->
+                <h3 class="text-xl font-semibold text-gray-900 mb-1" data-bind="incomingCall.callerName" data-mock="true">Bob Johnson</h3>
+                <p class="text-gray-500 text-sm mb-2" data-bind="incomingCall.callerId" data-mock="true">VC-3847</p>
+                
+                <!-- Incoming Call Status -->
+                <div class="text-primary text-sm font-medium">
+                    <span data-mock="true">Incoming voice call...</span>
+                </div>
+            </div>
+
+            <!-- Call Answer Controls -->
+            <div class="flex items-center justify-center space-x-12 p-8 pt-4">
+                <!-- Decline Button -->
+                <button class="w-16 h-16 bg-error hover:bg-red-600 rounded-full flex items-center justify-center transition-all duration-200" data-event="click:declineCall">
+                    <i class="fas fa-phone-slash text-white text-lg"></i>
+                </button>
+                
+                <!-- Accept Button -->
+                <button class="w-16 h-16 bg-success hover:bg-green-600 rounded-full flex items-center justify-center transition-all duration-200" data-event="click:acceptCall">
+                    <i class="fas fa-phone text-white text-lg"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: IncomingCallModal -->
+
+</div>
+<!-- @END_COMPONENT: App Container -->
+
+<script>
+(function() {
+    // TODO: Implement real-time voice calling functionality using WebRTC
+    // TODO: Implement user authentication and unique ID generation
+    // TODO: Implement actual call connection and signaling logic
+    
+    // Mock state management
+    let currentUser = null;
+    let callState = 'idle'; // idle, calling, ringing, connected
+    let currentCall = null;
+    
+    // DOM elements
+    const authScreen = document.getElementById('authScreen');
+    const mainApp = document.getElementById('mainApp');
+    const activeCallModal = document.getElementById('activeCallModal');
+    const incomingCallModal = document.getElementById('incomingCallModal');
+    
+    // Initialize app
+    function init() {
+        // Show auth screen initially
+        showAuthScreen();
+        
+        // Bind events
+        bindEvents();
+        
+        // Simulate incoming call after delay (for demo)
+        setTimeout(() => {
+            if (currentUser) {
+                simulateIncomingCall();
+            }
+        }, 8000);
+    }
+    
+    function showAuthScreen() {
+        authScreen.classList.remove('hidden');
+        mainApp.classList.add('hidden');
+    }
+    
+    function showMainApp() {
+        authScreen.classList.add('hidden');
+        mainApp.classList.remove('hidden');
+    }
+    
+    function bindEvents() {
+        // Auth form submission
+        const authForm = authScreen.querySelector('form');
+        authForm.addEventListener('submit', handleAuth);
+        
+        // Call form submission
+        const callForm = mainApp.querySelector('form');
+        if (callForm) {
+            callForm.addEventListener('submit', handleCallSubmit);
+        }
+        
+        // Quick call buttons
+        const quickCallBtns = mainApp.querySelectorAll('[data-event*="quickCall"]');
+        quickCallBtns.forEach(btn => {
+            btn.addEventListener('click', handleQuickCall);
+        });
+        
+        // Call control buttons
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('[data-event*="acceptCall"]')) {
+                acceptIncomingCall();
+            }
+            if (e.target.closest('[data-event*="declineCall"]')) {
+                declineIncomingCall();
+            }
+            if (e.target.closest('[data-event*="endCall"]')) {
+                endCall();
+            }
+            if (e.target.closest('[data-event*="toggleMute"]')) {
+                toggleMute();
+            }
+            if (e.target.closest('[data-event*="toggleSpeaker"]')) {
+                toggleSpeaker();
+            }
+        });
+    }
+    
+    function handleAuth(e) {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const username = e.target.querySelector('#username').value;
+        const displayName = e.target.querySelector('#displayName').value;
+        
+        if (username && displayName) {
+            // Generate mock user data
+            currentUser = {
+                id: 'VC-' + Math.floor(Math.random() * 9000 + 1000),
+                username: username,
+                displayName: displayName,
+                initials: displayName.split(' ').map(n => n[0]).join('').toUpperCase()
+            };
+            
+            // Update UI with user data
+            updateUserUI();
+            showMainApp();
+        }
+    }
+    
+    function updateUserUI() {
+        const userInitials = mainApp.querySelectorAll('[data-bind="user.initials"]');
+        const displayName = mainApp.querySelectorAll('[data-bind="user.displayName"]');
+        const userId = mainApp.querySelectorAll('[data-bind="user.id"]');
+        const voiceId = mainApp.querySelectorAll('[data-bind="user.voiceId"]');
+        
+        userInitials.forEach(el => el.textContent = currentUser.initials);
+        displayName.forEach(el => el.textContent = currentUser.displayName);
+        userId.forEach(el => el.textContent = 'ID: ' + currentUser.id);
+        voiceId.forEach(el => el.textContent = currentUser.id);
+    }
+    
+    function handleCallSubmit(e) {
+        e.preventDefault();
+        const recipientId = e.target.querySelector('#recipientId').value;
+        
+        if (recipientId) {
+            initiateCall(recipientId);
+        }
+    }
+    
+    function handleQuickCall(e) {
+        const contactId = e.currentTarget.querySelector('[data-mock="true"]').textContent;
+        // Extract ID from the contact display
+        const idMatch = contactId.match(/VC-\d+/);
+        if (idMatch) {
+            initiateCall(idMatch[0]);
+        }
+    }
+    
+    function initiateCall(recipientId) {
+        callState = 'calling';
+        currentCall = {
+            recipientId: recipientId,
+            callerName: 'Alice Smith', // Mock recipient name
+            callerInitials: 'AS',
+            callerId: recipientId
+        };
+        
+        showActiveCallModal();
+        updateCallStatus('Calling...');
+        
+        // Simulate call connection after 3 seconds
+        setTimeout(() => {
+            if (callState === 'calling') {
+                connectCall();
+            }
+        }, 3000);
+    }
+    
+    function simulateIncomingCall() {
+        callState = 'ringing';
+        currentCall = {
+            callerName: 'Bob Johnson',
+            callerInitials: 'BJ',
+            callerId: 'VC-3847'
+        };
+        
+        showIncomingCallModal();
+    }
+    
+    function acceptIncomingCall() {
+        hideIncomingCallModal();
+        showActiveCallModal();
+        connectCall();
+    }
+    
+    function declineIncomingCall() {
+        hideIncomingCallModal();
+        callState = 'idle';
+        currentCall = null;
+    }
+    
+    function connectCall() {
+        callState = 'connected';
+        updateCallStatus('Connected');
+        startCallTimer();
+        
+        // Show call duration
+        const durationEl = document.getElementById('callDuration');
+        if (durationEl) {
+            durationEl.classList.remove('hidden');
+        }
+    }
+    
+    function endCall() {
+        callState = 'idle';
+        currentCall = null;
+        hideActiveCallModal();
+        stopCallTimer();
+    }
+    
+    let callTimer;
+    let callSeconds = 0;
+    
+    function startCallTimer() {
+        callSeconds = 0;
+        callTimer = setInterval(() => {
+            callSeconds++;
+            updateCallDuration();
+        }, 1000);
+    }
+    
+    function stopCallTimer() {
+        if (callTimer) {
+            clearInterval(callTimer);
+            callTimer = null;
+        }
+        callSeconds = 0;
+    }
+    
+    function updateCallDuration() {
+        const minutes = Math.floor(callSeconds / 60);
+        const seconds = callSeconds % 60;
+        const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        
+        const durationElements = document.querySelectorAll('[data-bind="call.duration"]');
+        durationElements.forEach(el => el.textContent = timeString);
+    }
+    
+    function updateCallStatus(status) {
+        const statusEl = document.getElementById('callStatus');
+        if (statusEl) {
+            statusEl.querySelector('span').textContent = status;
+        }
+    }
+    
+    function showActiveCallModal() {
+        activeCallModal.classList.remove('hidden');
+        
+        // Update caller info
+        const callerNameEls = activeCallModal.querySelectorAll('[data-bind="call.callerName"]');
+        const callerInitialsEls = activeCallModal.querySelectorAll('[data-bind="call.callerInitials"]');
+        const callerIdEls = activeCallModal.querySelectorAll('[data-bind="call.callerId"]');
+        
+        callerNameEls.forEach(el => el.textContent = currentCall.callerName);
+        callerInitialsEls.forEach(el => el.textContent = currentCall.callerInitials);
+        callerIdEls.forEach(el => el.textContent = currentCall.callerId);
+    }
+    
+    function hideActiveCallModal() {
+        activeCallModal.classList.add('hidden');
+        
+        // Hide call duration
+        const durationEl = document.getElementById('callDuration');
+        if (durationEl) {
+            durationEl.classList.add('hidden');
+        }
+    }
+    
+    function showIncomingCallModal() {
+        incomingCallModal.classList.remove('hidden');
+        
+        // Update caller info
+        const callerNameEls = incomingCallModal.querySelectorAll('[data-bind="incomingCall.callerName"]');
+        const callerInitialsEls = incomingCallModal.querySelectorAll('[data-bind="incomingCall.callerInitials"]');
+        const callerIdEls = incomingCallModal.querySelectorAll('[data-bind="incomingCall.callerId"]');
+        
+        callerNameEls.forEach(el => el.textContent = currentCall.callerName);
+        callerInitialsEls.forEach(el => el.textContent = currentCall.callerInitials);
+        callerIdEls.forEach(el => el.textContent = currentCall.callerId);
+    }
+    
+    function hideIncomingCallModal() {
+        incomingCallModal.classList.add('hidden');
+    }
+    
+    function toggleMute() {
+        const muteBtn = document.getElementById('muteBtn');
+        const icon = muteBtn.querySelector('i');
+        
+        if (icon.classList.contains('fa-microphone')) {
+            icon.classList.remove('fa-microphone');
+            icon.classList.add('fa-microphone-slash');
+            muteBtn.classList.add('bg-error', 'text-white');
+            muteBtn.classList.remove('bg-gray-100', 'hover:bg-gray-200');
+        } else {
+            icon.classList.remove('fa-microphone-slash');
+            icon.classList.add('fa-microphone');
+            muteBtn.classList.remove('bg-error', 'text-white');
+            muteBtn.classList.add('bg-gray-100', 'hover:bg-gray-200');
+        }
+    }
+    
+    function toggleSpeaker() {
+        const speakerBtn = document.getElementById('speakerBtn');
+        const icon = speakerBtn.querySelector('i');
+        
+        if (icon.classList.contains('fa-volume-up')) {
+            icon.classList.remove('fa-volume-up');
+            icon.classList.add('fa-volume-down');
+            speakerBtn.classList.add('bg-primary', 'text-white');
+            speakerBtn.classList.remove('bg-gray-100', 'hover:bg-gray-200');
+        } else {
+            icon.classList.remove('fa-volume-down');
+            icon.classList.add('fa-volume-up');
+            speakerBtn.classList.remove('bg-primary', 'text-white');
+            speakerBtn.classList.add('bg-gray-100', 'hover:bg-gray-200');
+        }
+    }
+    
+    // Initialize when DOM is ready
+    document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+
+</body>
+</html>
