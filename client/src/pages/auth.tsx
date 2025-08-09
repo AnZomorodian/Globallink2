@@ -95,7 +95,7 @@ export default function AuthPage({ onLogin, onSwitchToSignUp }: AuthPageProps) {
   const onRegisterSubmit = (data: { username: string; displayName: string }) => {
     // Clear any existing session data first
     localStorage.removeItem('globalink_user');
-    localStorage.removeUser('globalink_session');
+    localStorage.removeItem('globalink_session');
     sessionStorage.clear();
     
     registerMutation.mutate(data);

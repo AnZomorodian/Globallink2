@@ -8,6 +8,7 @@ import HomePage from "@/pages/home";
 import type { User } from "@shared/schema";
 import { RingtoneService } from "@/lib/ringtone";
 import { storage } from "@/lib/user";
+import { getInitials } from "@/lib/utils";
 
 const queryClient = new QueryClient();
 
@@ -135,46 +136,8 @@ export default function App() {
     }
   };
 
-  // Mocking the useWebSocket hook for the provided snippet
-  useEffect(() => {
-    if (user?.id) {
-      // Replace with your actual WebSocket connection logic
-      const socket = new WebSocket('wss://your-websocket-server.com'); // Example WebSocket URL
-      setWs(socket);
-
-      socket.onopen = () => {
-        console.log('WebSocket connected');
-        // Send initial message with user ID if necessary
-        socket.send(JSON.stringify({ type: 'authenticate', userId: user.id }));
-      };
-
-      socket.onmessage = handleWebSocketMessage;
-
-      socket.onclose = () => {
-        console.log('WebSocket disconnected');
-        setWs(null);
-        // Optionally try to reconnect
-      };
-
-      socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
-
-      // Cleanup on component unmount or user change
-      return () => {
-        if (socket.readyState === WebSocket.OPEN) {
-          socket.close();
-        }
-        setWs(null);
-      };
-    } else {
-      // Close WebSocket if user logs out
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.close();
-      }
-      setWs(null);
-    }
-  }, [user]); // Re-run effect when user changes
+  // WebSocket connection is handled by useWebSocket hook
+  // Remove the duplicate WebSocket connection logic
 
 
   if (isLoading) {
